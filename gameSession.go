@@ -3,11 +3,11 @@ package gameliftgo
 type GameSessionStatus int
 
 const (
-	NotSet      GameSessionStatus = iota
-	Active      GameSessionStatus = iota
-	Activating  GameSessionStatus = iota
-	Terminated  GameSessionStatus = iota
-	Terminating GameSessionStatus = iota
+	StatusNotSet      GameSessionStatus = iota
+	StatusActive                        = iota
+	StatusActivating                    = iota
+	StatusTerminated                    = iota
+	StatusTerminating                   = iota
 )
 
 type GameSession struct {

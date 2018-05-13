@@ -13,7 +13,17 @@ int ProcessEnding();
 
 int ActivateGameSession();
 
-extern void onStartGameSessionGo(int, char *);
+int TerminateGameSession();
+
+int AcceptPlayerSession(char *);
+
+int RemovePlayerSession(char *);
+
+// DescribePlayerSessions
+
+int Destroy();
+
+extern void onStartGameSessionGo(int, char *, char *, char *, int, int, int, char **, char**, char *, int, char *, char *, char*);
 
 extern void onProcessTerminateGo(int);
 

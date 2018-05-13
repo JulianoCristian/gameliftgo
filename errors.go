@@ -1,22 +1,76 @@
 package gameliftgo
 
-// ALREADY_INITIALIZED,            // The GameLift Server or Client has already been initialized with Initialize().
-//         FLEET_MISMATCH,                 // The target fleet does not match the fleet of a gameSession or playerSession.
-//         GAMELIFT_CLIENT_NOT_INITIALIZED,// The GameLift client has not been initialized.
-//         GAMELIFT_SERVER_NOT_INITIALIZED,// The GameLift server has not been initialized.
-//         GAME_SESSION_ENDED_FAILED,      // The GameLift Server SDK could not contact the service to report the game session ended.
-//         GAME_SESSION_NOT_READY,         // The GameLift Server Game Session was not activated.
-//         GAME_SESSION_READY_FAILED,      // The GameLift Server SDK could not contact the service to report the game session is ready.
-//         INITIALIZATION_MISMATCH,        // A client method was called after Server::Initialize(), or vice versa.
-//         NOT_INITIALIZED,                // The GameLift Server or Client has not been initialized with Initialize().
-//         NO_TARGET_ALIASID_SET,          // A target aliasId has not been set.
-//         NO_TARGET_FLEET_SET,            // A target fleet has not been set.
-//         PROCESS_ENDING_FAILED,          // The GameLift Server SDK could not contact the service to report the process is ending.
-//         PROCESS_NOT_ACTIVE,             // The server process is not yet active, not bound to a GameSession, and cannot accept or process PlayerSessions.
-//         PROCESS_NOT_READY,              // The server process is not yet ready to be activated.
-//         PROCESS_READY_FAILED,           // The GameLift Server SDK could not contact the service to report the process is ready.
-//         SDK_VERSION_DETECTION_FAILED,   // SDK version detection failed.
-//         SERVICE_CALL_FAILED,            // A call to an AWS service has failed.
-//         STX_CALL_FAILED,                // A call to the XStx server backend component has failed.
-//         STX_INITIALIZATION_FAILED,      // The XStx server backend component has failed to initialize.
-//         UNEXPECTED_PLAYER_SESSION
+type GameLiftErrorType int
+
+const (
+	ErrAlreadyInitialized           GameLiftErrorType = iota
+	ErrFleetMismatch                                  = iota
+	ErrGameliftClientNotInitialized                   = iota
+	ErrGameliftServerNotInitialized                   = iota
+	ErrGameSessionEndedFailed                         = iota
+	ErrGameSessionNotReady                            = iota
+	ErrGameSessionReadyFailed                         = iota
+	ErrInitializationMismatch                         = iota
+	ErrNotInitialized                                 = iota
+	ErrNoTargetAliasIDSet                             = iota
+	ErrNoTargetFleetSet                               = iota
+	ErrProcessEndingFailed                            = iota
+	ErrProcessNotActive                               = iota
+	ErrProcessNotReady                                = iota
+	ErrProcessReadyFailed                             = iota
+	ErrSDKVersionDetectionFailed                      = iota
+	ErrServiceCallFailed                              = iota
+	ErrSTXCallFailed                                  = iota
+	ErrSTXInitializationFailed                        = iota
+	ErrUnexpectedPlayerSession                        = iota
+)
+
+type GameLiftError struct {
+	ErrorType GameLiftErrorType
+}
+
+func (e *GameLiftError) Error() string {
+	switch e.ErrorType {
+	case ErrAlreadyInitialized:
+		return "GameLift has already been initialized. You must call Destroy() before reinitializing the client or server."
+	case ErrFleetMismatch:
+		return "The Target fleet does not match the request fleet. Make sure GameSessions and PlayerSessions belong to your target fleet."
+	case ErrGameliftClientNotInitialized:
+		return "The GameLift client has not been initialized. Please call SetTargetFleet or SetTArgetAliasId."
+	case ErrGameliftServerNotInitialized:
+		return "The GameLift server has not been initialized. Please call InitSDK."
+	case ErrGameSessionEndedFailed:
+		return "The GameSessionEnded invocation failed."
+	case ErrGameSessionNotReady:
+		return "The Game session associated with this server was not activated."
+	case ErrGameSessionReadyFailed:
+		return "The GameSessionReady invocation failed."
+	case ErrInitializationMismatch:
+		return "The current call does not match the initialization state. Client calls require a call to Client::Initialize(), and Server calls require Server::Initialize(). Only one may be active at a time."
+	case ErrNotInitialized:
+		return "GameLift has not been initialized! You must call Client::Initialize() or Server::InitSDK() before making GameLift calls."
+	case ErrNoTargetAliasIDSet:
+		return "The aliasId has not been set. Clients should call SetTargetAliasId() before making calls that require an alias."
+	case ErrNoTargetFleetSet:
+		return "The target fleet has not been set. Clients should call SetTargetFleet() before making calls that require a fleet."
+	case ErrProcessEndingFailed:
+		return "ProcessEnding call to GameLift failed."
+	case ErrProcessNotActive:
+		return "The process has not yet been activated."
+	case ErrProcessNotReady:
+		return "The process has not yet been activated by calling ProcessReady(). Processes in standby cannot receive StartGameSession callbacks."
+	case ErrProcessReadyFailed:
+		return "ProcessReady call to GameLift failed."
+	case ErrSDKVersionDetectionFailed:
+		return "Could not detect SDK version."
+	case ErrServiceCallFailed:
+		return "An AWS service call has failed. See the root cause error for more information."
+	case ErrSTXCallFailed:
+		return "An internal call to the STX server backend component has failed."
+	case ErrSTXInitializationFailed:
+		return "The STX server backend component has failed to initialize."
+	case ErrUnexpectedPlayerSession:
+		return "The player session was not expected by the server. Clients wishing to connect to a server must obtain a PlayerSessionID from GameLift by creating a player session on the desired server's game instance."
+	}
+	return "An unexpected error has occurred."
+}
