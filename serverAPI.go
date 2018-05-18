@@ -83,29 +83,27 @@ func Destroy() error {
 }
 
 //export onStartGameSessionGo
-func onStartGameSessionGo(onStartGameSessionCallback C.int, gameSessionID *C.char, name *C.char, fleetID *C.char,
-	maximumPlayerSessionCount C.int, status C.int, gamePropertiesSize C.int, gamePropertiesKeys **C.char, gamePropertiesValues **C.char,
-	ipAddress *C.char, port C.int, gameSessionData *C.char, matchmakerData *C.char, dnsName *C.char) {
+func onStartGameSessionGo(onStartGameSessionCallback C.int, gameSession C.GameSessionC) {
 	gameProperties := make(map[string]string)
 	size := unsafe.Sizeof(int(0))
-	for i := 0; i < int(gamePropertiesSize); i++ {
-		key := *(**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(gamePropertiesKeys)) + size*uintptr(i)))
-		val := *(**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(gamePropertiesValues)) + size*uintptr(i)))
+	for i := 0; i < int(gameSession.GamePropertiesCount); i++ {
+		key := *(**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(gameSession.GamePropertiesKeys)) + size*uintptr(i)))
+		val := *(**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(gameSession.GamePropertiesValues)) + size*uintptr(i)))
 		gameProperties[C.GoString(key)] = C.GoString(val)
 	}
 	if callback := lookup(int(onStartGameSessionCallback)).(func(GameSession)); callback != nil {
 		callback(GameSession{
-			GameSessionID:             C.GoString(gameSessionID),
-			Name:                      C.GoString(name),
-			FleetID:                   C.GoString(fleetID),
-			MaximumPlayerSessionCount: int(maximumPlayerSessionCount),
-			Status:          GameSessionStatus(status),
+			GameSessionID:             C.GoString(gameSession.GameSessionID),
+			Name:                      C.GoString(gameSession.Name),
+			FleetID:                   C.GoString(gameSession.FleetID),
+			MaximumPlayerSessionCount: int(gameSession.MaximumPlayerSessionCount),
+			Status:          GameSessionStatus(gameSession.Status),
 			GameProperties:  gameProperties,
-			IPAddress:       C.GoString(ipAddress),
-			Port:            int(port),
-			GameSessionData: C.GoString(gameSessionData),
-			MatchmakerData:  C.GoString(matchmakerData),
-			DNSName:         C.GoString(dnsName),
+			IPAddress:       C.GoString(gameSession.IPAddress),
+			Port:            int(gameSession.Port),
+			GameSessionData: C.GoString(gameSession.GameSessionData),
+			MatchmakerData:  C.GoString(gameSession.MatchmakerData),
+			DNSName:         C.GoString(gameSession.DNSName),
 		})
 	}
 }

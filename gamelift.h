@@ -5,6 +5,22 @@
 extern "C" {
 #endif
 
+typedef struct {
+    const char *GameSessionID;
+    const char *Name;
+    const char *FleetID;
+    int MaximumPlayerSessionCount;
+    int Status;
+    int GamePropertiesCount;
+    char **GamePropertiesKeys;
+    char **GamePropertiesValues;
+    const char *IPAddress;
+    int Port;
+    const char *GameSessionData;
+    const char *MatchmakerData;
+    const char *DNSName;
+} GameSessionC;
+
 int InitSDK();
 
 int ProcessReady(int, int, int, int);
@@ -19,11 +35,11 @@ int AcceptPlayerSession(char *);
 
 int RemovePlayerSession(char *);
 
-// DescribePlayerSessions
+int DescribePlayerSessions(char *);
 
 int Destroy();
 
-extern void onStartGameSessionGo(int, char *, char *, char *, int, int, int, char **, char**, char *, int, char *, char *, char*);
+extern void onStartGameSessionGo(int, GameSessionC gameSession);
 
 extern void onProcessTerminateGo(int);
 
