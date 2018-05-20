@@ -16,6 +16,7 @@ const (
 
 type PlayerSession struct {
 	PlayerSessionID string
+	PlayerID        string
 	GameSessionID   string
 	FleetID         string
 	CreationTime    time.Time

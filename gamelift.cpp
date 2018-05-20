@@ -153,6 +153,10 @@ DescribePlayerSessionsOutcomeC DescribePlayerSessions(DescribePlayerSessionsRequ
         memset((void *)playerSessionC.PlayerSessionID, 0, 1024 + 1);
         memcpy((void *)playerSessionC.PlayerSessionID, (*it).GetPlayerSessionId().c_str(), 1024 + 1);
 
+        playerSessionC.PlayerID = new char[1024 + 1];
+        memset((void *)playerSessionC.PlayerID, 0, 1024 + 1);
+        memcpy((void *)playerSessionC.PlayerID, (*it).GetPlayerId().c_str(), 1024 + 1);
+
         playerSessionC.GameSessionID = new char[1024 + 1];
         memset((void *)playerSessionC.GameSessionID, 0, 1024 + 1);
         memcpy((void *)playerSessionC.GameSessionID, (*it).GetGameSessionId().c_str(), 1024 + 1);

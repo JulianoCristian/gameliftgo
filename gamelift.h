@@ -28,6 +28,7 @@ typedef struct {
 
 typedef struct {
     const char *PlayerSessionID;
+    const char *PlayerID;
     const char *GameSessionID;
     const char *FleetID;
     long CreationTime;

@@ -112,6 +112,7 @@ func DescribePlayerSessions(request DescribePlayerSessionsRequest) (*DescribePla
 		playerSessionC := *(*C.PlayerSessionC)(unsafe.Pointer(uintptr(unsafe.Pointer(outcome.Result.PlayerSessions)) + size*uintptr(i)))
 		playerSession := PlayerSession{
 			PlayerSessionID: C.GoString(playerSessionC.PlayerSessionID),
+			PlayerID:        C.GoString(playerSessionC.PlayerID),
 			GameSessionID:   C.GoString(playerSessionC.GameSessionID),
 			FleetID:         C.GoString(playerSessionC.FleetID),
 			CreationTime:    time.Unix(int64(playerSessionC.CreationTime/1000), 0),
@@ -124,6 +125,7 @@ func DescribePlayerSessions(request DescribePlayerSessionsRequest) (*DescribePla
 		}
 		playerSessions = append(playerSessions, playerSession)
 		C.free(unsafe.Pointer(playerSessionC.PlayerSessionID))
+		C.free(unsafe.Pointer(playerSessionC.PlayerID))
 		C.free(unsafe.Pointer(playerSessionC.GameSessionID))
 		C.free(unsafe.Pointer(playerSessionC.FleetID))
 		C.free(unsafe.Pointer(playerSessionC.Status))
@@ -156,7 +158,7 @@ func onStartGameSessionGo(onStartGameSessionCallback C.int, gameSession C.GameSe
 		val := *(**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(gameSession.GamePropertiesValues)) + size*uintptr(i)))
 		gameProperties[C.GoString(key)] = C.GoString(val)
 	}
-	if callback := lookup(int(onStartGameSessionCallback)).(func(GameSession)); callback != nil {
+	if callback, ok := lookup(int(onStartGameSessionCallback)).(func(GameSession)); ok {
 		callback(GameSession{
 			GameSessionID:             C.GoString(gameSession.GameSessionID),
 			Name:                      C.GoString(gameSession.Name),
@@ -175,14 +177,14 @@ func onStartGameSessionGo(onStartGameSessionCallback C.int, gameSession C.GameSe
 
 //export onProcessTerminateGo
 func onProcessTerminateGo(onProcessTerminateCallback C.int) {
-	if callback := lookup(int(onProcessTerminateCallback)).(func() bool); callback != nil {
+	if callback, ok := lookup(int(onProcessTerminateCallback)).(func()); ok {
 		callback()
 	}
 }
 
 //export onHealthCheckGo
 func onHealthCheckGo(onHealthCheckCallback C.int) C.int {
-	if callback := lookup(int(onHealthCheckCallback)).(func() bool); callback != nil {
+	if callback, ok := lookup(int(onHealthCheckCallback)).(func() bool); ok {
 		if callback() {
 			return C.int(1)
 		}
