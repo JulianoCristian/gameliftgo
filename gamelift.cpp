@@ -11,7 +11,7 @@ OutcomeC InitSDK() {
     return {1, 0};
 }
 
-OutcomeC ProcessReady(int onStartGameSessionCallback, int onProcessTerminateCallback, int onHealthCheckCallback, int port) {
+OutcomeC ProcessReady(int onStartGameSessionCallback, int onProcessTerminateCallback, int onHealthCheckCallback, int port, const char **logPathsC, int logPathsCCount) {
     auto onStartGameSession = [onStartGameSessionCallback](Aws::GameLift::Server::Model::GameSession gameSession){
         auto gameProperties = gameSession.GetGameProperties();
         const char **gamePropertiesKeys = new const char*[gameProperties.size()];
@@ -73,7 +73,10 @@ OutcomeC ProcessReady(int onStartGameSessionCallback, int onProcessTerminateCall
     };
     
     std::vector<std::string> logPaths;
-
+    for (int i = 0; i < logPathsCCount; i++) {
+        logPaths.push_back(logPathsC[i]);
+    }
+    
     Aws::GameLift::Server::ProcessParameters processReadyParameter(onStartGameSession,
                                                                    onProcessTerminate,
                                                                    onHealthCheck,

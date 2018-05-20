@@ -62,7 +62,7 @@ typedef struct {
 
 OutcomeC InitSDK();
 
-OutcomeC ProcessReady(int, int, int, int);
+OutcomeC ProcessReady(int, int, int, int, const char **, int);
 
 OutcomeC ProcessEnding();
 

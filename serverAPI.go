@@ -24,13 +24,22 @@ func InitSDK() error {
 	return nil
 }
 
-func ProcessReady(onStartGameSession func(GameSession), onProcessTerminate func(), onHealthCheck func() bool, port int) error {
+func ProcessReady(onStartGameSession func(GameSession), onProcessTerminate func(), onHealthCheck func() bool, port int, logPaths []string) error {
 	onStartGameSessionCallback := C.int(register(onStartGameSession))
 	onProcessTerminateCallback := C.int(register(onProcessTerminate))
 	onHealthCheckCallback := C.int(register(onHealthCheck))
-	if outcome := C.ProcessReady(onStartGameSessionCallback, onProcessTerminateCallback, onHealthCheckCallback, C.int(port)); outcome.IsSuccess == 0 {
+	logPathsC := C.malloc(C.size_t(len(logPaths)) * C.size_t(unsafe.Sizeof(uintptr(0))))
+	logPathsCArr := (*[1<<30 - 1]*C.char)(logPathsC)
+	for index, logPath := range logPaths {
+		logPathsCArr[index] = C.CString(logPath)
+	}
+	if outcome := C.ProcessReady(onStartGameSessionCallback, onProcessTerminateCallback, onHealthCheckCallback, C.int(port), (**C.char)(unsafe.Pointer(logPathsC)), C.int(len(logPaths))); outcome.IsSuccess == 0 {
 		return &GameLiftError{ErrorType: GameLiftErrorType(outcome.ErrorType)}
 	}
+	for index := range logPaths {
+		C.free(unsafe.Pointer(logPathsCArr[index]))
+	}
+	C.free(logPathsC)
 	return nil
 }
 
