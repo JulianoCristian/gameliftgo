@@ -13,12 +13,13 @@ package gameliftgo
 // #include "gamelift.h"
 import "C"
 import (
+	"time"
 	"unsafe"
 )
 
 func InitSDK() error {
-	if errorType := C.InitSDK(); errorType >= 0 {
-		return &GameLiftError{ErrorType: GameLiftErrorType(errorType)}
+	if outcome := C.InitSDK(); outcome.IsSuccess == 0 {
+		return &GameLiftError{ErrorType: GameLiftErrorType(outcome.ErrorType)}
 	}
 	return nil
 }
@@ -27,30 +28,30 @@ func ProcessReady(onStartGameSession func(GameSession), onProcessTerminate func(
 	onStartGameSessionCallback := C.int(register(onStartGameSession))
 	onProcessTerminateCallback := C.int(register(onProcessTerminate))
 	onHealthCheckCallback := C.int(register(onHealthCheck))
-	if errorType := C.ProcessReady(onStartGameSessionCallback, onProcessTerminateCallback, onHealthCheckCallback, C.int(port)); errorType >= 0 {
-		return &GameLiftError{ErrorType: GameLiftErrorType(errorType)}
+	if outcome := C.ProcessReady(onStartGameSessionCallback, onProcessTerminateCallback, onHealthCheckCallback, C.int(port)); outcome.IsSuccess == 0 {
+		return &GameLiftError{ErrorType: GameLiftErrorType(outcome.ErrorType)}
 	}
 	return nil
 }
 
 func ProcessEnding() error {
 	unregisterAll()
-	if errorType := C.ProcessEnding(); errorType >= 0 {
-		return &GameLiftError{ErrorType: GameLiftErrorType(errorType)}
+	if outcome := C.ProcessEnding(); outcome.IsSuccess == 0 {
+		return &GameLiftError{ErrorType: GameLiftErrorType(outcome.ErrorType)}
 	}
 	return nil
 }
 
 func ActivateGameSession() error {
-	if errorType := C.ActivateGameSession(); errorType >= 0 {
-		return &GameLiftError{ErrorType: GameLiftErrorType(errorType)}
+	if outcome := C.ActivateGameSession(); outcome.IsSuccess == 0 {
+		return &GameLiftError{ErrorType: GameLiftErrorType(outcome.ErrorType)}
 	}
 	return nil
 }
 
 func TerminateGameSession() error {
-	if errorType := C.TerminateGameSession(); errorType >= 0 {
-		return &GameLiftError{ErrorType: GameLiftErrorType(errorType)}
+	if outcome := C.TerminateGameSession(); outcome.IsSuccess == 0 {
+		return &GameLiftError{ErrorType: GameLiftErrorType(outcome.ErrorType)}
 	}
 	return nil
 }
@@ -58,8 +59,8 @@ func TerminateGameSession() error {
 func AcceptPlayerSession(playerSessionID string) error {
 	cPlayerSessionID := C.CString(playerSessionID)
 	defer C.free(unsafe.Pointer(cPlayerSessionID))
-	if errorType := C.AcceptPlayerSession(cPlayerSessionID); errorType >= 0 {
-		return &GameLiftError{ErrorType: GameLiftErrorType(errorType)}
+	if outcome := C.AcceptPlayerSession(cPlayerSessionID); outcome.IsSuccess == 0 {
+		return &GameLiftError{ErrorType: GameLiftErrorType(outcome.ErrorType)}
 	}
 	return nil
 }
@@ -67,17 +68,72 @@ func AcceptPlayerSession(playerSessionID string) error {
 func RemovePlayerSession(playerSessionID string) error {
 	cPlayerSessionID := C.CString(playerSessionID)
 	defer C.free(unsafe.Pointer(cPlayerSessionID))
-	if errorType := C.RemovePlayerSession(cPlayerSessionID); errorType >= 0 {
-		return &GameLiftError{ErrorType: GameLiftErrorType(errorType)}
+	if outcome := C.RemovePlayerSession(cPlayerSessionID); outcome.IsSuccess == 0 {
+		return &GameLiftError{ErrorType: GameLiftErrorType(outcome.ErrorType)}
 	}
 	return nil
 }
 
-// DescribePlayerSessions
+func DescribePlayerSessions(request DescribePlayerSessionsRequest) (*DescribePlayerSessionsResult, error) {
+	cGameSessionID := C.CString(request.GameSessionID)
+	defer C.free(unsafe.Pointer(cGameSessionID))
+	cNextToken := C.CString(request.NextToken)
+	defer C.free(unsafe.Pointer(cNextToken))
+	cPlayerID := C.CString(request.PlayerID)
+	defer C.free(unsafe.Pointer(cPlayerID))
+	cPlayerSessionID := C.CString(request.PlayerSessionID)
+	defer C.free(unsafe.Pointer(cPlayerSessionID))
+	cPlayerSessionStatusFilter := C.CString(request.PlayerSessionStatusFilter)
+	defer C.free(unsafe.Pointer(cPlayerSessionStatusFilter))
+	requestC := C.DescribePlayerSessionsRequestC{
+		GameSessionID:             cGameSessionID,
+		Limit:                     C.int(request.Limit),
+		NextToken:                 cNextToken,
+		PlayerID:                  cPlayerID,
+		PlayerSessionID:           cPlayerSessionID,
+		PlayerSessionStatusFilter: cPlayerSessionStatusFilter,
+	}
+	outcome := C.DescribePlayerSessions(requestC)
+	if outcome.IsSuccess == 0 {
+		return nil, &GameLiftError{ErrorType: GameLiftErrorType(outcome.ErrorType)}
+	}
+	playerSessions := make([]PlayerSession, 0)
+	size := unsafe.Sizeof(C.PlayerSessionC{})
+	for i := 0; i < int(outcome.Result.PlayerSessionsCount); i++ {
+		playerSessionC := *(*C.PlayerSessionC)(unsafe.Pointer(uintptr(unsafe.Pointer(outcome.Result.PlayerSessions)) + size*uintptr(i)))
+		playerSession := PlayerSession{
+			PlayerSessionID: C.GoString(playerSessionC.PlayerSessionID),
+			GameSessionID:   C.GoString(playerSessionC.GameSessionID),
+			FleetID:         C.GoString(playerSessionC.FleetID),
+			CreationTime:    time.Unix(int64(playerSessionC.CreationTime/1000), 0),
+			TerminationTime: time.Unix(int64(playerSessionC.TerminationTime/1000), 0),
+			Status:          PlayerSessionStatus(C.GoString(playerSessionC.Status)),
+			IPAddress:       C.GoString(playerSessionC.IPAddress),
+			Port:            int(playerSessionC.Port),
+			PlayerData:      C.GoString(playerSessionC.PlayerData),
+			DNSName:         C.GoString(playerSessionC.DNSName),
+		}
+		playerSessions = append(playerSessions, playerSession)
+		C.free(unsafe.Pointer(playerSessionC.PlayerSessionID))
+		C.free(unsafe.Pointer(playerSessionC.GameSessionID))
+		C.free(unsafe.Pointer(playerSessionC.FleetID))
+		C.free(unsafe.Pointer(playerSessionC.Status))
+		C.free(unsafe.Pointer(playerSessionC.IPAddress))
+		C.free(unsafe.Pointer(playerSessionC.PlayerData))
+		C.free(unsafe.Pointer(playerSessionC.DNSName))
+	}
+	result := &DescribePlayerSessionsResult{
+		NextToken:      C.GoString(outcome.Result.NextToken),
+		PlayerSessions: playerSessions,
+	}
+	C.free(unsafe.Pointer(outcome.Result.NextToken))
+	C.free(unsafe.Pointer(outcome.Result.PlayerSessions))
+	return result, nil
+}
 
 func Destroy() error {
-	if errorType := C.Destroy(); errorType >= 0 {
-		return &GameLiftError{ErrorType: GameLiftErrorType(errorType)}
+	if outcome := C.Destroy(); outcome.IsSuccess == 0 {
+		return &GameLiftError{ErrorType: GameLiftErrorType(outcome.ErrorType)}
 	}
 	return nil
 }
@@ -97,7 +153,7 @@ func onStartGameSessionGo(onStartGameSessionCallback C.int, gameSession C.GameSe
 			Name:                      C.GoString(gameSession.Name),
 			FleetID:                   C.GoString(gameSession.FleetID),
 			MaximumPlayerSessionCount: int(gameSession.MaximumPlayerSessionCount),
-			Status:          GameSessionStatus(gameSession.Status),
+			Status:          GameSessionStatus(C.GoString(gameSession.Status)),
 			GameProperties:  gameProperties,
 			IPAddress:       C.GoString(gameSession.IPAddress),
 			Port:            int(gameSession.Port),

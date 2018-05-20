@@ -4,14 +4,14 @@ import (
 	"time"
 )
 
-type PlayerSessionStatus int
+type PlayerSessionStatus string
 
 const (
-	PlayerSessionStatusNotSet    PlayerSessionStatus = iota
-	PlayerSessionStatusReserved  PlayerSessionStatus = iota
-	PlayerSessionStatusActive    PlayerSessionStatus = iota
-	PlayerSessionStatusCompleted PlayerSessionStatus = iota
-	PlayerSessionStatusTimedout  PlayerSessionStatus = iota
+	PlayerSessionStatusNotSet    PlayerSessionStatus = "NOT_SET"
+	PlayerSessionStatusReserved                      = "RESERVED"
+	PlayerSessionStatusActive                        = "ACTIVE"
+	PlayerSessionStatusCompleted                     = "COMPLETED"
+	PlayerSessionStatusTimedout                      = "TIMEDOUT"
 )
 
 type PlayerSession struct {

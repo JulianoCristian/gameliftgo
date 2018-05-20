@@ -1,13 +1,13 @@
 package gameliftgo
 
-type GameSessionStatus int
+type GameSessionStatus string
 
 const (
-	GameSessionStatusNotSet      GameSessionStatus = iota
-	GameSessionStatusActive                        = iota
-	GameSessionStatusActivating                    = iota
-	GameSessionStatusTerminated                    = iota
-	GameSessionStatusTerminating                   = iota
+	GameSessionStatusNotSet      GameSessionStatus = "NOT_SET"
+	GameSessionStatusActive                        = "ACTIVE"
+	GameSessionStatusActivating                    = "ACTIVATING"
+	GameSessionStatusTerminated                    = "TERMINATED"
+	GameSessionStatusTerminating                   = "TERMINATING"
 )
 
 type GameSession struct {

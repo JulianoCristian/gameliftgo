@@ -6,14 +6,19 @@ extern "C" {
 #endif
 
 typedef struct {
+    int IsSuccess;
+    int ErrorType;
+} OutcomeC;
+
+typedef struct {
     const char *GameSessionID;
     const char *Name;
     const char *FleetID;
     int MaximumPlayerSessionCount;
-    int Status;
+    const char *Status;
     int GamePropertiesCount;
-    char **GamePropertiesKeys;
-    char **GamePropertiesValues;
+    const char **GamePropertiesKeys;
+    const char **GamePropertiesValues;
     const char *IPAddress;
     int Port;
     const char *GameSessionData;
@@ -21,23 +26,57 @@ typedef struct {
     const char *DNSName;
 } GameSessionC;
 
-int InitSDK();
+typedef struct {
+    const char *PlayerSessionID;
+    const char *GameSessionID;
+    const char *FleetID;
+    long CreationTime;
+    long TerminationTime;
+    const char *Status;
+    const char *IPAddress;
+    int Port;
+    const char *PlayerData;
+    const char *DNSName;
+} PlayerSessionC;
 
-int ProcessReady(int, int, int, int);
+typedef struct {
+    const char *GameSessionID;
+    int Limit;
+    const char *NextToken;
+    const char *PlayerID;
+    const char *PlayerSessionID;
+    const char *PlayerSessionStatusFilter;
+} DescribePlayerSessionsRequestC;
 
-int ProcessEnding();
+typedef struct {
+    const char *NextToken;
+    int PlayerSessionsCount;
+    PlayerSessionC *PlayerSessions;
+} DescribePlayerSessionsResultC;
 
-int ActivateGameSession();
+typedef struct {
+    int IsSuccess;
+    int ErrorType;
+    DescribePlayerSessionsResultC Result;
+} DescribePlayerSessionsOutcomeC;
 
-int TerminateGameSession();
+OutcomeC InitSDK();
 
-int AcceptPlayerSession(char *);
+OutcomeC ProcessReady(int, int, int, int);
 
-int RemovePlayerSession(char *);
+OutcomeC ProcessEnding();
 
-int DescribePlayerSessions(char *);
+OutcomeC ActivateGameSession();
 
-int Destroy();
+OutcomeC TerminateGameSession();
+
+OutcomeC AcceptPlayerSession(char *);
+
+OutcomeC RemovePlayerSession(char *);
+
+DescribePlayerSessionsOutcomeC DescribePlayerSessions(DescribePlayerSessionsRequestC);
+
+OutcomeC Destroy();
 
 extern void onStartGameSessionGo(int, GameSessionC gameSession);
 

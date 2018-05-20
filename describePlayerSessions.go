@@ -9,7 +9,7 @@ type DescribePlayerSessionsRequest struct {
 	PlayerSessionStatusFilter string
 }
 
-type DescribePlayerSessionsResponse struct {
+type DescribePlayerSessionsResult struct {
 	NextToken      string
 	PlayerSessions []PlayerSession
 }
