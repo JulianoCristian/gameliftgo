@@ -1,4 +1,4 @@
-package server
+package main
 
 import (
 	"context"
@@ -9,27 +9,21 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/marchinram/gameliftgo/example/tictactoe/game"
 )
 
 type ConnectHandlerFunc func(playerSessionID string) (string, bool)
-type DisconnectHandlerFunc func(playerSessionID string)
-type CommandHandlerFunc func(game.Command) game.Message
+type DisconnectHandlerFunc func(playerSessionID string, playerID string)
+type CommandHandlerFunc func(commant Command)
 
-type GameServer interface {
-	Listen(port int)
-	ShutdownServer()
-}
-
-type gameServer struct {
+type Server struct {
 	httpServer           http.Server
 	onPlayerConnected    ConnectHandlerFunc
 	onPlayerDisconnected DisconnectHandlerFunc
-	onCommandReceived    func(game.Command) game.Message
+	onCommandReceived    CommandHandlerFunc
 	connMap              map[string]*websocket.Conn
 }
 
-func (s *gameServer) Listen(port int) {
+func (s *Server) Listen(port int) {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/game/{pSessID}", func(w http.ResponseWriter, r *http.Request) {
@@ -60,22 +54,22 @@ func (s *gameServer) Listen(port int) {
 		s.connMap[playerID] = conn
 
 		for {
-			var command game.Command
+			var command Command
 			if err := conn.ReadJSON(&command); err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
 					log.Println(err)
 				}
 				break
 			}
-			message := s.onCommandReceived(command)
-			if err := conn.WriteJSON(message); err != nil {
-				log.Println(err)
-				break
-			}
+			s.onCommandReceived(command)
+			// if err := conn.WriteJSON(message); err != nil {
+			// 	log.Println(err)
+			// 	break
+			// }
 		}
 
 		delete(s.connMap, playerID)
-		s.onPlayerDisconnected(playerSessionID)
+		s.onPlayerDisconnected(playerSessionID, playerID)
 	})
 
 	s.httpServer = http.Server{Addr: fmt.Sprintf(":%d", port), Handler: router}
@@ -83,7 +77,7 @@ func (s *gameServer) Listen(port int) {
 	log.Printf("Listening on port %d\n", port)
 }
 
-func (s *gameServer) ShutdownServer() {
+func (s *Server) ShutdownServer() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 	if err := s.httpServer.Shutdown(ctx); err != nil {
@@ -91,8 +85,8 @@ func (s *gameServer) ShutdownServer() {
 	}
 }
 
-func NewGameServer(onPlayerConnected ConnectHandlerFunc, onPlayerDisconnected DisconnectHandlerFunc, onCommandReceived CommandHandlerFunc) GameServer {
-	return &gameServer{
+func NewServer(onPlayerConnected ConnectHandlerFunc, onPlayerDisconnected DisconnectHandlerFunc, onCommandReceived CommandHandlerFunc) *Server {
+	return &Server{
 		onPlayerConnected:    onPlayerConnected,
 		onPlayerDisconnected: onPlayerDisconnected,
 		onCommandReceived:    onCommandReceived,

@@ -6,9 +6,6 @@ import (
 	"os"
 
 	"github.com/marchinram/gameliftgo"
-	"github.com/marchinram/gameliftgo/example/tictactoe/game"
-	"github.com/marchinram/gameliftgo/example/tictactoe/server"
-	"github.com/marchinram/gameliftgo/example/tictactoe/util"
 )
 
 const (
@@ -16,8 +13,9 @@ const (
 )
 
 var (
-	gameServer server.GameServer
-	terminate  = make(chan bool)
+	server    = NewServer(onPlayerConnected, onPlayerDisconnected, onCommandReceived)
+	game      = NewGame()
+	terminate = make(chan bool)
 )
 
 func onStartGameSession(gameSession gameliftgo.GameSession) {
@@ -35,10 +33,6 @@ func onHealthCheck() bool {
 }
 
 func onPlayerConnected(playerSessionID string) (string, bool) {
-	if err := gameliftgo.AcceptPlayerSession(playerSessionID); err != nil {
-		log.Printf("AcceptPlayerSession err: %v", err)
-		return "", false
-	}
 	request := gameliftgo.DescribePlayerSessionsRequest{
 		PlayerSessionID: playerSessionID,
 	}
@@ -52,20 +46,33 @@ func onPlayerConnected(playerSessionID string) (string, bool) {
 		return "", false
 	}
 	playerSession := response.PlayerSessions[0]
+
+	if !game.AddPlayer(playerSession.PlayerID) {
+		log.Printf("Error adding player %s, game is full", playerSession.PlayerID)
+		return "", false
+	}
+	if err := gameliftgo.AcceptPlayerSession(playerSessionID); err != nil {
+		log.Printf("AcceptPlayerSession err: %v", err)
+		return "", false
+	}
+
 	return playerSession.PlayerID, true
 }
 
-func onPlayerDisconnected(playerSessionID string) {
+func onPlayerDisconnected(playerSessionID string, playerID string) {
 	if err := gameliftgo.RemovePlayerSession(playerSessionID); err != nil {
 		log.Printf("RemovePlayerSession err: %v", err)
 	}
-	// If count of players is 0 terminate
-	terminate <- true
+	if !game.RemovePlayer(playerID) {
+		log.Printf("Error adding player %s, not in game", playerID)
+	}
+	if game.IsGameEmpty() {
+		terminate <- true
+	}
 }
 
-func onCommandReceived(game.Command) game.Message {
-	// log.Println("Received command: ")
-	return game.Message{}
+func onCommandReceived(command Command) {
+	game.HandleCommand(command)
 }
 
 func main() {
@@ -82,7 +89,7 @@ func main() {
 		log.SetOutput(file)
 	}
 
-	port, err := util.GetPort(10000, 60000)
+	port, err := GetPort(10000, 60000)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -93,15 +100,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	gameServer = server.NewGameServer(onPlayerConnected, onPlayerDisconnected, onCommandReceived)
-	gameServer.Listen(port)
+	server.Listen(port)
 
 	select {
 	case <-terminate:
 		break
 	}
 
-	gameServer.ShutdownServer()
+	server.ShutdownServer()
 
 	gameliftgo.ProcessEnding()
 	gameliftgo.Destroy()
