@@ -9,7 +9,7 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "program": "${workspaceFolder}/example/tictactoe/main.go"
+            "program": "${workspaceFolder}/examples/tictactoe/main.go"
         }
     ]
 }

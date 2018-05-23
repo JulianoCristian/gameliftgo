@@ -28,7 +28,7 @@ func main() {
     log.Fatal(err)
   }
   
-  ... Run server loop ...
+//  ... Run server loop ...
   
   gameliftgo.ProcessEnding()
   gameliftgo.Destroy()

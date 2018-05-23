@@ -79,7 +79,7 @@ DescribePlayerSessionsOutcomeC DescribePlayerSessions(DescribePlayerSessionsRequ
 
 OutcomeC Destroy();
 
-extern void onStartGameSessionGo(int, GameSessionC gameSession);
+extern void onStartGameSessionGo(int, GameSessionC);
 
 extern void onProcessTerminateGo(int);
 
