@@ -6,7 +6,7 @@ import "github.com/marchinram/gameliftgo"
 
 func onStartGameSession(gameSession gameliftgo.GameSession) {
   if err := gameliftgo.ActivateGameSession(); err != nil {
-    log.Print(err)
+    log.Println(err)
   }
 }
 

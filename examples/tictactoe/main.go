@@ -6,6 +6,9 @@ import (
 	"os"
 
 	"github.com/marchinram/gameliftgo"
+	"github.com/marchinram/gameliftgo/examples/tictactoe/game"
+	"github.com/marchinram/gameliftgo/examples/tictactoe/socket"
+	"github.com/marchinram/gameliftgo/examples/tictactoe/util"
 )
 
 const (
@@ -13,8 +16,8 @@ const (
 )
 
 var (
-	server    = NewServer(onPlayerConnected, onPlayerDisconnected, onCommandReceived)
-	game      = NewGame()
+	server    *socket.Server
+	tictactoe *game.TicTacToeGame
 	terminate = make(chan bool)
 )
 
@@ -38,41 +41,37 @@ func onPlayerConnected(playerSessionID string) (string, bool) {
 	}
 	response, err := gameliftgo.DescribePlayerSessions(request)
 	if err != nil {
-		log.Printf("AcceptDescribePlayerSessionsPlayerSession err: %v", err)
+		log.Printf("DescribePlayerSessions error: %v", err)
 		return "", false
 	}
 	if len(response.PlayerSessions) != 1 {
-		log.Println("Error getting PlayerSession")
+		log.Println("DescribePlayerSessions error: empty result")
 		return "", false
 	}
 	playerSession := response.PlayerSessions[0]
-
-	if !game.AddPlayer(playerSession.PlayerID) {
-		log.Printf("Error adding player %s, game is full", playerSession.PlayerID)
-		return "", false
-	}
 	if err := gameliftgo.AcceptPlayerSession(playerSessionID); err != nil {
-		log.Printf("AcceptPlayerSession err: %v", err)
+		log.Printf("AcceptPlayerSession error: %v", err)
 		return "", false
 	}
-
 	return playerSession.PlayerID, true
 }
 
 func onPlayerDisconnected(playerSessionID string, playerID string) {
 	if err := gameliftgo.RemovePlayerSession(playerSessionID); err != nil {
-		log.Printf("RemovePlayerSession err: %v", err)
+		log.Printf("RemovePlayerSession error: %v", err)
 	}
-	if !game.RemovePlayer(playerID) {
-		log.Printf("Error adding player %s, not in game", playerID)
-	}
-	if game.IsGameEmpty() {
+	if tictactoe.IsGameEmpty() {
 		terminate <- true
 	}
 }
 
-func onCommandReceived(command Command) {
-	game.HandleCommand(command)
+func onCommandReceived(command game.Command) {
+	tictactoe.HandleCommand(command)
+}
+
+func init() {
+	server = socket.NewServer(onPlayerConnected, onPlayerDisconnected, onCommandReceived)
+	tictactoe = game.NewTicTacToeGame(server)
 }
 
 func main() {
@@ -89,7 +88,7 @@ func main() {
 		log.SetOutput(file)
 	}
 
-	port, err := GetPort(10000, 60000)
+	port, err := util.GetPort(10000, 60000)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,4 +1,4 @@
-package main
+package socket
 
 import (
 	"context"
@@ -9,11 +9,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/marchinram/gameliftgo/examples/tictactoe/game"
 )
 
 type ConnectHandlerFunc func(playerSessionID string) (string, bool)
 type DisconnectHandlerFunc func(playerSessionID string, playerID string)
-type CommandHandlerFunc func(commant Command)
+type CommandHandlerFunc func(command game.Command)
 
 type Server struct {
 	httpServer           http.Server
@@ -54,18 +55,12 @@ func (s *Server) Listen(port int) {
 		s.connMap[playerID] = conn
 
 		for {
-			var command Command
+			var command game.Command
 			if err := conn.ReadJSON(&command); err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
-					log.Println(err)
-				}
+				log.Println(err)
 				break
 			}
 			s.onCommandReceived(command)
-			// if err := conn.WriteJSON(message); err != nil {
-			// 	log.Println(err)
-			// 	break
-			// }
 		}
 
 		delete(s.connMap, playerID)
@@ -82,6 +77,26 @@ func (s *Server) ShutdownServer() {
 	defer cancel()
 	if err := s.httpServer.Shutdown(ctx); err != nil {
 		log.Println(err)
+	}
+}
+
+func (s *Server) Write(message game.Message) {
+	if message.SendMode == game.SendModeEveryone {
+		for _, conn := range s.connMap {
+			if err := conn.WriteJSON(message); err != nil {
+				log.Println(err)
+			}
+		}
+	} else {
+		for _, recipientID := range message.RecipientIDs {
+			for connID, conn := range s.connMap {
+				if recipientID == connID {
+					if err := conn.WriteJSON(message); err != nil {
+						log.Println(err)
+					}
+				}
+			}
+		}
 	}
 }
 
