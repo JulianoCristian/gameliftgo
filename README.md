@@ -2,7 +2,11 @@
 Go wrapper for GameLift Server SDK
 
 ```
-import "github.com/marchinram/gameliftgo"
+import (
+	"log"
+
+	"github.com/marchinram/gameliftgo"
+)
 
 func onStartGameSession(gameSession gameliftgo.GameSession) {
   if err := gameliftgo.ActivateGameSession(); err != nil {

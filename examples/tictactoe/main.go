@@ -23,7 +23,7 @@ var (
 
 func onStartGameSession(gameSession gameliftgo.GameSession) {
 	if err := gameliftgo.ActivateGameSession(); err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 }
 
@@ -77,7 +77,7 @@ func init() {
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	logPaths := make([]string, 0)
+	logPaths := []string{"./logs"}
 	if logToFile {
 		os.MkdirAll("./logs/gameLiftLogs", os.ModePerm)
 		logPaths = append(logPaths, "./logs/gameLiftLogs")
@@ -92,6 +92,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	if err := gameliftgo.InitSDK(); err != nil {
 		log.Fatal(err)
 	}
