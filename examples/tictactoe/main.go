@@ -49,6 +49,10 @@ func onPlayerConnected(playerSessionID string) (string, bool) {
 		return "", false
 	}
 	playerSession := response.PlayerSessions[0]
+	if server.IsPlayerConnected(playerSession.PlayerID) {
+		log.Printf("Player already connected to server: %s", playerSession.PlayerID)
+		return "", false
+	}
 	if err := gameliftgo.AcceptPlayerSession(playerSessionID); err != nil {
 		log.Printf("AcceptPlayerSession error: %v", err)
 		return "", false
@@ -60,7 +64,12 @@ func onPlayerDisconnected(playerSessionID string, playerID string) {
 	if err := gameliftgo.RemovePlayerSession(playerSessionID); err != nil {
 		log.Printf("RemovePlayerSession error: %v", err)
 	}
-	if tictactoe.IsGameEmpty() {
+
+	// Overly simple disconnect logic, just removes player from game
+	// and ends game if in progress since tictactoe is 2 player game
+	tictactoe.RemovePlayer(playerID)
+
+	if server.NoConnections() {
 		terminate <- true
 	}
 }
@@ -100,15 +109,17 @@ func main() {
 		log.Fatal(err)
 	}
 
+	defer gameliftgo.Destroy()
+	defer gameliftgo.ProcessEnding()
+
 	server.Listen(port)
+	defer server.ShutdownServer()
+
+	tictactoe.Run()
+	defer tictactoe.Stop()
 
 	select {
 	case <-terminate:
 		break
 	}
-
-	server.ShutdownServer()
-
-	gameliftgo.ProcessEnding()
-	gameliftgo.Destroy()
 }

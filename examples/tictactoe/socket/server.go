@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -22,6 +23,7 @@ type Server struct {
 	onPlayerDisconnected DisconnectHandlerFunc
 	onCommandReceived    CommandHandlerFunc
 	connMap              map[string]*websocket.Conn
+	connLock             sync.Mutex // RWMutex instead?
 }
 
 func (s *Server) Listen(port int) {
@@ -52,7 +54,9 @@ func (s *Server) Listen(port int) {
 		}
 		defer conn.Close()
 
+		s.connLock.Lock()
 		s.connMap[playerID] = conn
+		s.connLock.Unlock()
 
 		for {
 			var command game.Command
@@ -60,10 +64,14 @@ func (s *Server) Listen(port int) {
 				log.Println(err)
 				break
 			}
+			command.SenderID = playerID
 			s.onCommandReceived(command)
 		}
 
+		s.connLock.Lock()
 		delete(s.connMap, playerID)
+		s.connLock.Unlock()
+
 		s.onPlayerDisconnected(playerSessionID, playerID)
 	})
 
@@ -80,24 +88,58 @@ func (s *Server) ShutdownServer() {
 	}
 }
 
-func (s *Server) Write(message game.Message) {
-	if message.SendMode == game.SendModeEveryone {
-		for _, conn := range s.connMap {
-			if err := conn.WriteJSON(message); err != nil {
-				log.Println(err)
-			}
-		}
-	} else {
-		for _, recipientID := range message.RecipientIDs {
-			for connID, conn := range s.connMap {
-				if recipientID == connID {
-					if err := conn.WriteJSON(message); err != nil {
-						log.Println(err)
-					}
+func (s *Server) Write(message game.Message, playerIDs ...string) {
+	for _, playerID := range playerIDs {
+		for connPlayerID, conn := range s.connMap {
+			if playerID == connPlayerID {
+				if err := conn.WriteJSON(message); err != nil {
+					log.Println(err)
 				}
 			}
 		}
 	}
+}
+func (s *Server) WriteAll(message game.Message) {
+	for _, conn := range s.connMap {
+		if err := conn.WriteJSON(message); err != nil {
+			log.Println(err)
+		}
+	}
+}
+
+// func (s *Server) Write(message game.Message) {
+// 	if message.SendMode == game.SendModeEveryone {
+// for _, conn := range s.connMap {
+// 	if err := conn.WriteJSON(message); err != nil {
+// 		log.Println(err)
+// 	}
+// }
+// 	} else {
+// for _, recipientID := range message.RecipientIDs {
+// 	for connID, conn := range s.connMap {
+// 		if recipientID == connID {
+// 			if err := conn.WriteJSON(message); err != nil {
+// 				log.Println(err)
+// 			}
+// 		}
+// 	}
+// }
+// 	}
+// }
+
+func (s *Server) IsPlayerConnected(playerID string) bool {
+	s.connLock.Lock()
+	defer s.connLock.Unlock()
+	if _, ok := s.connMap[playerID]; ok {
+		return true
+	}
+	return false
+}
+
+func (s *Server) NoConnections() bool {
+	s.connLock.Lock()
+	defer s.connLock.Unlock()
+	return len(s.connMap) == 0
 }
 
 func NewServer(onPlayerConnected ConnectHandlerFunc, onPlayerDisconnected DisconnectHandlerFunc, onCommandReceived CommandHandlerFunc) *Server {
